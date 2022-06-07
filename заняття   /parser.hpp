@@ -7,7 +7,7 @@
 #include "token.hpp"
 #include "CandyObj/FunctionObj.hpp"
 #include "CandyObj/VariableObj.hpp"
-
+// #include "AST/ExpressionNode.hpp"
 using namespace std;
 class Parser {
     map<int, vector<Token>> tokens = {};
@@ -239,8 +239,7 @@ class Parser {
                                     argnum++;
                                     name = tokens[line][_pos].value;
                                     if (match("ASSIGN", _pos)) {
-                                        _pos += 2;
-                                        auto tmp = parseCode(_pos);
+                                        auto tmp = parseCode(_pos + 2);
                                         value = tmp[0];
                                         _pos = stoi(tmp.back());
                                         cout << "pos: " << _pos << endl;
