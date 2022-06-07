@@ -21,6 +21,7 @@ int main(int argc, char * argv[]){
     ifstream file(argv[1]);
     stringstream code;
     code << file.rdbuf();
+    file.close();
     Lexer l;
     vector<Token> i = {};
     map<int, vector<Token>> tokenlist = {};
