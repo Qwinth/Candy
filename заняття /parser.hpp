@@ -11,7 +11,6 @@
 using namespace std;
 class Parser {
     map<int, vector<Token>> tokens = {};
-    int pos = 0;
     int line = 0;
 
     map<string, vector<string>> objects = { {"FUNCTION", {"function"}}, {"VARIABLE", {"__file__"}} };
@@ -49,7 +48,6 @@ class Parser {
                     }
                 }
             }
-            pos = 0;
         }
 
         void string_preprocess() {
@@ -60,7 +58,6 @@ class Parser {
                     objects["STRING"].push_back(tokens[line][pos + 1].value);
                 }
             }
-            pos = 0;
         }
 
 
@@ -219,6 +216,7 @@ class Parser {
 
             var_preprocess();
             string_preprocess();
+            int pos = 0;
             auto i = tokens[line][0];
             if (i.type == "UNDEFINED_STRING") {
                 if (find(keywords.begin(), keywords.end(), i.value) != keywords.end()) {
