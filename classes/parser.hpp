@@ -81,55 +81,41 @@ class Parser {
             return s;
         }
 
-        vector<string> process_numeric(vector<string> floattmp) {
-            string i = floattmp[0];
+        vector<string> process_numeric(int pos) {
+            vector<string> numtokens;
             vector<string> tmp;
-            int pos = stoi(floattmp.back());
-            while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMERIC" || tokens[line][pos].type == "UNDEFINED_STRING" || find(mathoperators.begin(), mathoperators.end(), tokens[line][pos].value) != mathoperators.end())) {
-                if (match("PLUS", pos)) {
-                    if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos + 2].value) != objects["VARIABLE"].end()) {
-                        i = (format_numeric(to_string(stold(i) + stold(variables[tokens[line][pos + 2].value]))));
-                    }
-                    else {
-                        i = (format_numeric(to_string(stold(i) + stold(parseNumeric(pos + 2)[0]))));
-                        pos = stoi(parseNumeric(pos + 2)[1]);
-                    }
+            string __tmp;
+            int rb = 0;
+            
+            while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMERIC" || tokens[line][pos].type == "UNDEFINED_STRING" || find(mathoperators.begin(), mathoperators.end(), tokens[line][pos].value) != mathoperators.end() || (tokens[line][pos].type == "LEFT_BRACKET" ||(rb != 0 && tokens[line][pos].type == "RIGHT_BRACKET")))) {
+                if (tokens[line][pos].type == "LEFT_BRACKET") {
+                    __tmp = tokens[line][pos].value;
+                    rb++;
                 }
-                else if (match("MINUS", pos)) {
-                    if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos + 2].value) != objects["VARIABLE"].end()) {
-                        i = (format_numeric(to_string(stold(i) - stold(variables[tokens[line][pos + 2].value]))));
-                    }
-                    else {
-                        i = (format_numeric(to_string(stold(i)-+ stold(parseNumeric(pos + 2)[0]))));
-                        pos = stoi(parseNumeric(pos + 2)[1]);
-                    }
-
+                else if (tokens[line][pos].type == "RIGHT_BRACKET") {
+                    __tmp = tokens[line][pos].value;
+                    rb--;
                 }
-                else if (match("MULTIPLICATION", pos)) {
-                    if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos + 2].value) != objects["VARIABLE"].end()) {
-                        i = (format_numeric(to_string(stold(i) * stold(variables[tokens[line][pos + 2].value]))));
-                    }
-                    else {
-                        i = (format_numeric(to_string(stold(i) * stold(parseNumeric(pos + 2)[0]))));
-                        pos = stoi(parseNumeric(pos + 2)[1]);
-                    }
-
+                else if (tokens[line][pos].type == "NUMERIC") {
+                    auto _tmp = parseNumeric(pos);
+                    __tmp = _tmp[0];
+                    pos = stoi(_tmp.back());
                 }
-                else if (match("DIVISION", pos)) {
-                    if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos + 2].value) != objects["VARIABLE"].end()) {
-                        i = (format_numeric(to_string(stold(i) / stold(variables[tokens[line][pos + 2].value]))));
-                    }
-                    else {
-                        i = (format_numeric(to_string(stold(i) / stold(parseNumeric(pos + 2)[0]))));
-                        pos = stoi(parseNumeric(pos + 2)[1]);
-                    }
-
+                else if ((tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos].value) != objects["VARIABLE"].end())) {
+                    __tmp = variables[tokens[line][pos].value];
                 }
-
+                else {
+                    __tmp = tokens[line][pos].value;
+                }
+                numtokens.push_back(__tmp);
                 pos++;
             }
+            string i = numtokens[0];
             tmp.push_back(i);
             tmp.push_back(to_string(pos));
+            for (auto token : numtokens) {
+                cout << token << endl;
+            }
             return tmp;
         }
 
@@ -153,7 +139,7 @@ class Parser {
             auto i = tokens[line][pos];
             vector<string> tmp = {};
             if (i.type == "NUMERIC") {
-                tmp = process_numeric(parseNumeric(pos));
+                tmp = process_numeric(pos);
                 return tmp;
 
             } else if (match("QUOTE", pos - 2) && find(objects["STRING"].begin(), objects["STRING"].end(), i.value) != objects["STRING"].end() && match("QUOTE", pos)) {
@@ -166,7 +152,8 @@ class Parser {
 
                 if (match("LEFT_BRACKET", pos)) {
                     
-                    if (match("UNDEFINED_STRING", pos + 1) || match("NUMERIC", pos + 1) || match("QUOTE", pos + 1)) {
+                    if (match("UNDEFINED_STRING", pos + 1) || match("NUMERIC", pos + 1) || match("QUOTE", pos + 1) || match("LEFT_BRACKET", pos + 1)) {
+                        pos++;
                         while (pos + 1 < tokens[line].size() && tokens[line][pos].type != "RIGHT_BRACKET") {
                         _tmp = parseCode(pos + 1);
                         pos = stoll(_tmp.back());
@@ -189,9 +176,13 @@ class Parser {
                 return tmp;
 
             } else if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) != objects["VARIABLE"].end()) {
-                if (pos + 1 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end()) {
-                    tmp.push_back(process_numeric({ variables[i.value], to_string(pos) })[0]);
-                    tmp.push_back(process_numeric({ variables[i.value], to_string(pos) }).back());
+                if (pos + 1 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && match("NUMERIC", pos + 1)) {
+                    if (match("LEFT_BRACKET", pos - 2) && !match("UNDEFINED_STRING", pos - 3)) {
+                        pos--;
+                    }
+                    auto rttmp = process_numeric(pos);
+                    tmp.push_back(rttmp[0]);
+                    tmp.push_back(rttmp.back());
                 }
                 else {
                     tmp.push_back(variables[i.value]);
@@ -200,7 +191,19 @@ class Parser {
                 
                 return tmp;
             
-            } else {
+            }
+            else if (i.type == "LEFT_BRACKET") {
+                vector<string> rttmp;
+                if (match("NUMERIC", pos)) {
+                    rttmp = process_numeric((pos));
+                }
+                else {
+                    rttmp = parseCode(pos + 1);
+                }
+                tmp.push_back(rttmp[0]);
+                tmp.push_back(rttmp.back());
+            }
+            else {
                 tmp.push_back("null");
                 tmp.push_back(to_string(pos));
             }
