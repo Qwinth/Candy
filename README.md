@@ -1,1 +1,2 @@
 # Candy
+Interpreted programming language
