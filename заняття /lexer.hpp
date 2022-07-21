@@ -25,17 +25,22 @@ class Lexer {
                 i = code_string[tmp];
                 if (find(spec_symbols.begin(), spec_symbols.end(), i) != spec_symbols.end()) {
                     if (find(quotes.begin(), quotes.end(), i) != quotes.end()){
-                        if (quotes_opened != "")
+                        if (quotes_opened != "" && quotes_opened == i) {
                             quotes_opened = "";
-                        else
+                        }
+
+                        else if (quotes_opened == "") {
                             quotes_opened = quotes[find(quotes.begin(), quotes.end(), i) - quotes.begin()];
+                        }
                     }
 
                     if (quotes_opened != "") {
-                        if (i != quotes_opened)
+                        if (i != quotes_opened) {
                             undefined += i;
-                        else
+                        }
+                        else {
                             undefined_elements[pos] = i;
+                        }
                     } else {
                         if (undefined != "") {
                             undefined_elements[pos - undefined.length()] = undefined;
@@ -79,7 +84,7 @@ class Lexer {
                     tokens.push_back(Token(spec_symbols_name[i], i, tmp.first));
                 
                 } else if (i.find_first_not_of("0123456789") == string::npos && quotes_opened == "") {
-                    tokens.push_back(Token("NUMERIC", i, tmp.first));
+                    tokens.push_back(Token("NUMBER", i, tmp.first));
 
                 } else {
                     tokens.push_back(Token("UNDEFINED_STRING", i, tmp.first));                    
