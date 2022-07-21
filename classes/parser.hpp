@@ -92,14 +92,11 @@ public:
     }
 
     vector<string> exec(string fname, vector<string> args) {
-        cout << "call function: " << fname << " with arg: " << args[0] << endl;
-        cout << args.size() << endl;
-        for (auto i : args) {
-            cout << i << endl;
-        }
         vector<string> ret = { "novalue", "NULL"};
         auto vec = functions[fname]->tokenpos;
+        int _line = line;
         ret = executeCode(vec[0], vec[1], vec[2], true);
+        line = _line;
         return ret;
     }
 
@@ -382,7 +379,6 @@ public:
                     if (i.value == "func" && match("UNDEFINED_STRING", pos)) {
                         objects["FUNCTION"].push_back(tokens[line][pos + 1].value);
                         if (match("LEFT_BRACKET", pos + 1)) {
-                            cout << "Create function: " << tokens[line][pos + 1].value << endl;
                             vector<Argument> args = {};
                             string value;
                             string name;
@@ -400,7 +396,6 @@ public:
                                         value = tmp[0];
                                         type = tmp[1];
                                         _pos = stoi(tmp.back());
-                                        cout << "pos: " << _pos << endl;
                                     }
                                     else {
                                         auto tmp = parseCode(_pos);
@@ -436,7 +431,6 @@ public:
                             if (_pos + 2 < tokens[line].size()) {
                                 _startline = _line;
                                 _starttoken = _pos + 2;
-                                cout << "yes" << endl;
                             } else {
                                 _startline = _line;
                                 if (_startline == line) {
@@ -460,20 +454,14 @@ public:
                                 }
                                 
                             } while (brackets != 0);
+                            
                             _endline = _line;
-                            cout << format("%d %d %d", _startline, _starttoken, _endline) << endl;
-
                             functions[tokens[line][pos + 1].value] = new Function(args, {_startline, _starttoken, _endline});
                             line = _line;
-                            
-                            cout << args.size() << endl;
-                            for (auto i : args) {
-                                cout << i.pos << " " << i.name << " " << i.value << endl;
                             }
                         }
                     }
                     else if (i.value == "return") {
-                        cout << "ret yes" << endl;
                         if (isfunc && tokens[line].size() > 1) {
                             auto tmp = parseCode(pos + 1);
                             ret = {tmp[0], tmp[1]};
