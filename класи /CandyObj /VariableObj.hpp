@@ -1,11 +1,11 @@
 #pragma once
 #include <string>
 using namespace std;
-class Variable {
-    protected:
+class Variable {     
+    public:
         string type;
         string value;
-    public:
+        Variable() {}
         Variable(string t, string v) {
             type = t;
             value = v;
