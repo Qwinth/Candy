@@ -488,9 +488,6 @@ public:
                 else if (find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), i.value) != objects["FUNCTION"].end()) {
                     parseCode(pos);
                 }
-                else {
-                    
-                }
 
                 if (variables.find("out") != variables.end()) {
                 cout << variables["out"]->value << endl;
