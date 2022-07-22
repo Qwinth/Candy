@@ -16,7 +16,6 @@ class Parser {
     int line = 0;
 
     map<string, vector<string>> objects = { {"FUNCTION", {"function"}}, {"VARIABLE", {"__file__"}} };
-    map<string, string> scope = {};
     vector<string> keywords = { "if", "for", "while", "in", "import", "return", "func" };
     vector<string> booloperators = { "==", ">=", "<=", ">", "<" };
     vector<string> mathoperators = { "+", "-", "*", "/", "%" };
@@ -135,7 +134,7 @@ public:
                     __tmp = variables[tokens[line][pos].value]->value;
                 }
                 else {
-                    cout << format("Exception on pos: %d:%d\nUnnable to combine NUMBER and %s", line + 1, pos, variables[tokens[line][pos].value]->type);
+                    cout << format("Exception on pos: %d:%d\nUnnable to combine NUMBER and %s", line + 1, pos, variables[tokens[line][pos].value]->type.c_str());
                     exit(-1);
                 }
             }
@@ -314,6 +313,8 @@ public:
                 }
                 else { tmp = exec(i.value, { "novalue" }); }
 
+            } else {
+                tmp = {i.value, "FUNCTION"};
             }
             if (tmp.size() == 0) { tmp.push_back("novalue"); }
             tmp.push_back(to_string(pos));
@@ -327,6 +328,7 @@ public:
                 }
                 auto rttmp = processNumber(pos);
                 tmp.push_back(rttmp[0]);
+                tmp.push_back(rttmp[1]);
                 tmp.push_back(rttmp.back());
             }
             else {
@@ -347,6 +349,9 @@ public:
             }
             tmp.push_back(rttmp[0]);
             tmp.push_back(rttmp.back());
+        }
+        else if (i.type == "UNDEFINED_STRING" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
+            return {i.value, "BOOLEAN", to_string(pos)};
         }
         else {
             tmp.push_back("null");
@@ -370,9 +375,11 @@ public:
             else if (tokens[line].size() == 1 && tokens[line][0].type == "HASHTAG") {
                 continue;
             }
+
             var_preprocess();
             string_preprocess();
             auto i = tokens[line][pos];
+
             if (i.type == "UNDEFINED_STRING") {
                 if (find(keywords.begin(), keywords.end(), i.value) != keywords.end()) {
 
@@ -427,7 +434,7 @@ public:
                             int _startline = 0;
                             int _starttoken = 0;
                             int _endline = 0;
-                            
+
                             if (_pos + 2 < tokens[line].size()) {
                                 _startline = _line;
                                 _starttoken = _pos + 2;
@@ -440,7 +447,7 @@ public:
                                     _starttoken++;
                                 }
                             }
-                            
+
                             do {
                                 for (auto token : tokens[_line]) {
                                     if (token.type == "RIGHT_FIGURE_BRACKET") {
@@ -454,11 +461,9 @@ public:
                                 }
                                 
                             } while (brackets != 0);
-                            
                             _endline = _line;
                             functions[tokens[line][pos + 1].value] = new Function(args, {_startline, _starttoken, _endline});
                             line = _line;
-                            }
                         }
                     }
                     else if (i.value == "return") {
@@ -480,6 +485,11 @@ public:
                 if (variables.find("out") != variables.end()) {
                 cout << variables["out"]->value << endl;
                 eraseVariable("out");
+                }
+
+                if (variables.find("outtype") != variables.end()) {
+                cout << variables["outtype"]->type << endl;
+                eraseVariable("outtype");
                 }
             }
             pos = 0;
