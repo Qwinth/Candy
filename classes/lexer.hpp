@@ -1,15 +1,10 @@
 #pragma once
-#include <vector>
-#include <cctype>
-#include <string>
-#include <algorithm>
-#include <map>
-#include "token.hpp"
 using namespace std;
 
 class Lexer {
-    vector<string> spec_symbols = {"(", ")", "'", "\"", "{", "}", "[", "]", "=", "!", "+", "-", "*", "/", "%", ":", ";", ".", ",", "<", ">", "#", "\\"};
-    map<string, string> spec_symbols_name = {{"(", "LEFT_BRACKET"}, {")", "RIGHT_BRACKET"}, {"'", "QUOTE"}, {"\"", "QUOTE"}, {"{", "LEFT_FIGURE_BRACKET"}, {"}", "RIGHT_FIGURE_BRACKET"}, {"[", "RIGHT_SQUARE_BRACKET"}, {"]", "LEFT_SQUARE_BRACKET"}, {"=", "ASSIGN"}, {"!", "EXCLAMATION_MARK"}, {"+", "PLUS"}, {"-", "MINUS"}, {"*", "MULTIPLICATION"}, {"/", "DIVISION"}, {"%", "INTEREST"}, {":", "DOUBLE_DOT"}, {";", "DOT_COMA"}, {".", "DOT"}, {",", "COMA"}, {"<", "LEFT_INEQUALITY_BRACKET"}, {">", "RIGHT_INEQUALITY_BRACKET"}, {"#", "HASHTAG"}, {"\\", "INVERSE_SLASH"}};
+    vector<string> spec_characters = {"(", ")", "'", "\"", "{", "}", "[", "]", "=", "!", "+", "-", "*", "/", "%", ":", ";", ".", ",", "<", ">", "#", "\\"};
+    map<char, string> control_characters = {{'0', "\0"}, {'a', "\a"}, {'b', "\b"}, {'t', "\t"}, {'n', "\n"}, {'v', "\v"}, {'f', "\f"}, {'r', "\r"}, {'\\', "\\"}};
+    map<string, string> spec_characters_name = {{"(", "LEFT_BRACKET"}, {")", "RIGHT_BRACKET"}, {"'", "QUOTE"}, {"\"", "QUOTE"}, {"{", "LEFT_FIGURE_BRACKET"}, {"}", "RIGHT_FIGURE_BRACKET"}, {"[", "RIGHT_SQUARE_BRACKET"}, {"]", "LEFT_SQUARE_BRACKET"}, {"=", "ASSIGN"}, {"!", "EXCLAMATION_MARK"}, {"+", "PLUS"}, {"-", "MINUS"}, {"*", "MULTIPLICATION"}, {"/", "DIVISION"}, {"%", "INTEREST"}, {":", "DOUBLE_DOT"}, {";", "DOT_COMA"}, {".", "DOT"}, {",", "COMA"}, {"<", "LEFT_INEQUALITY_BRACKET"}, {">", "RIGHT_INEQUALITY_BRACKET"}, {"#", "HASHTAG"}, {"\\", "INVERSE_SLASH"}};
     vector<string> quotes = {"'", "\""};
     string quotes_opened;
     string comment = "#", space = " ";
@@ -23,9 +18,10 @@ class Lexer {
             for (tmp = 0; tmp != code_string.length(); tmp++) {
                 pos = tmp;
                 i = code_string[tmp];
-                if (find(spec_symbols.begin(), spec_symbols.end(), i) != spec_symbols.end()) {
-                    if (find(quotes.begin(), quotes.end(), i) != quotes.end()){
-                        if (quotes_opened != "" && quotes_opened == i) {
+                if (find(spec_characters.begin(), spec_characters.end(), i) != spec_characters.end()) {
+                    
+                    if (find(quotes.begin(), quotes.end(), i) != quotes.end()) {
+                        if (quotes_opened != "" && quotes_opened == i && code_string[pos - 1] != '\\') {
                             quotes_opened = "";
                         }
 
@@ -35,10 +31,11 @@ class Lexer {
                     }
 
                     if (quotes_opened != "") {
-                        if (i != quotes_opened) {
+                        if (i != quotes_opened || code_string[pos - 1] == '\\') {
                             undefined += i;
                         }
                         else {
+                            
                             undefined_elements[pos] = i;
                         }
                     } else {
@@ -73,7 +70,7 @@ class Lexer {
             quotes_opened = "";
             for (auto tmp : undefined_elements){
                 i = tmp.second;
-                if (spec_symbols_name.find(i) != spec_symbols_name.end()){
+                if (spec_characters_name.find(i) != spec_characters_name.end()){
                     if (find(quotes.begin(), quotes.end(), i) != quotes.end()){
                         if (quotes_opened != "")
                             quotes_opened = "";
@@ -81,11 +78,21 @@ class Lexer {
                             quotes_opened = quotes[find(quotes.begin(), quotes.end(), i) - quotes.begin()];
                     }
 
-                    tokens.push_back(Token(spec_symbols_name[i], i, tmp.first));
+                    tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
                 
-                } else if (i.find_first_not_of("0123456789") == string::npos && quotes_opened == "") {
+                } else if (all_of(i.begin(), i.end(), ::isdigit) && quotes_opened == "") {
                     tokens.push_back(Token("NUMBER", i, tmp.first));
 
+                } else if (quotes_opened != "") {
+
+                    for (int tmp = 0; tmp < i.length(); tmp++) {
+                        if (i[tmp] == '\\' && control_characters.find(i[tmp + 1]) != control_characters.end()) {
+                            i.replace(tmp, 2, control_characters[i[tmp + 1]]);
+                        } else if (i[tmp] == '\\') {
+                            i.erase(tmp, 1);
+                        }
+                    }
+                    tokens.push_back(Token("STRING", i, tmp.first));
                 } else {
                     tokens.push_back(Token("UNDEFINED_STRING", i, tmp.first));                    
                 }
