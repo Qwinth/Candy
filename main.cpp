@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define _NO_DEBUG_HEAP
 #include <iostream>
 #include <vector>
 #include <map>
@@ -7,32 +8,36 @@
 #endif
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <map>
+#include <algorithm>
 #include "classes/token.hpp"
 #include "classes/lexer.hpp"
 #include "classes/parser.hpp"
-#include "libs/strlib.hpp"
 using namespace std;
 
 int main(int argc, char * argv[]){
-    #ifdef _WIN32
+#ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
-    #endif
-    if (argc > 1) {
-    ifstream file(argv[1]);
-    stringstream code;
-    code << file.rdbuf();
-    file.close();
-    Lexer l;
-    vector<Token> i = {};
-    map<int, vector<Token>> tokenlist = {};
-    for (int t = 0; t < split(code.str(), "\n").size(); t++){
+#endif
+    // if (argc > 1) {
+        ifstream file("functest.cd");
+        stringstream code;
+        code << file.rdbuf();
+        file.close();
+        Lexer l;
+        vector<Token> i = {};
+        map<int, vector<Token>> tokenlist = {};
+        vector<string> codelines = split(code.str(), "\n");
+        for (int t = 0; t < codelines.size(); t++){
+            tokenlist[t] = l.tokenize(l.disassemble(codelines[t]));
+        }
+        // for (auto i : tokenlist[0]) {
+        //     cout << i.value << endl;
+        // }
+        Parser p(tokenlist, "functest.cd");
+        p.runCode();
+    // }
 
-    tokenlist[t] = l.tokenize(l.disassemble(split(code.str(), "\n")[t]));
-
-    }
-    Parser p(tokenlist, argv[1]);
-    p.runCode();
-    }
-    
     return 0;
 }
