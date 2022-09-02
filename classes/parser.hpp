@@ -60,7 +60,6 @@ public:
     Parser(map<int, vector<Token>> _tokens, string _file) {
         tokens = _tokens;
         createVariable("__file__", _file, "STRING");
-        //createVariable("out1", "", "STRING");
     }
 
     void var_preprocess() {
@@ -220,7 +219,6 @@ public:
 
         string i = numtokens[0];
         int _pos = 0;
-        // cout << i << endl;
         while (_pos + 1 < numtokens.size()) {
             if (numtokens[_pos + 1] == "+") {
                 i = formatNumber(to_string(stold(i) + stold(numtokens[_pos + 2])));
@@ -307,22 +305,19 @@ public:
                 }
             }
         }
-        else {
-            cout << format("Exception on pos: %d:%d\nThere is no such comparison operator for: %s and %s.\n", line + 1,  pos_ex, value[1].c_str(), value[3].c_str()) << endl;
-            exit(-1);
-        }
+
         return {boolean[0], "BOOLEAN", to_string(pos_ex)};
     }
 
     vector<string> _parseCode(int pos) {
+        vector<string> tmp = {};
+        string arg;
         if (tokens[line][pos].type == "QUOTE" && match("STRING", pos) && match("QUOTE", pos + 1)) {
             pos += 1;
+            arg = "new";
         }
-
-
         auto i = tokens[line][pos];
 
-        vector<string> tmp = {};
         if (i.type == "NUMBER") {
             auto _tmp = parseNumber(pos);
             return {_tmp[0], i.type, _tmp.back()};
@@ -331,18 +326,9 @@ public:
         else if (i.type == "STRING") {
             auto ret = i.value;
             string rettype = i.type;
-
-            // if (pos + 3 < tokens[line].size() && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 2].value + tokens[line][pos + 3].value) != booloperators.end()) {
-            //     ret = processBoolean({ ret, rettype, parseCode(pos + 4)[0], parseCode(pos + 4)[1] }, pos + 1, pos + 4);
-            //     rettype = "BOOLEAN";
-            // }
-
-            // else if (pos + 2 < tokens[line].size() && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 2].value) != booloperators.end()) {
-            //     ret = processBoolean({ ret, rettype, parseCode(pos + 3)[0], parseCode(pos + 3)[1] }, pos + 1, pos + 3);
-            //     rettype = "BOOLEAN";
-            // }
             tmp.push_back(ret);
             tmp.push_back(rettype);
+            tmp.push_back(arg);
             tmp.push_back(to_string(pos));
             return tmp;
 
@@ -351,50 +337,50 @@ public:
             vector<string> _tmp = {};
             int brackets = 0;
             if (match("LEFT_BRACKET", pos)) {
-                brackets++;
-                if (match("UNDEFINED_STRING", pos + 1) || match("NUMBER", pos + 1) || match("QUOTE", pos + 1) || match("LEFT_BRACKET", pos + 1)) {
+                while (tokens[line][pos + 1].type == "LEFT_BRACKET") {
+                    brackets++;
                     pos++;
-                    while (pos + 1 < tokens[line].size() && (tokens[line][pos].type != "RIGHT_BRACKET" || brackets == 0)) {
+                }
+                if (match("UNDEFINED_STRING", pos) || match("NUMBER", pos) || match("QUOTE", pos) || match("LEFT_BRACKET", pos)) {
+                    
+                    do {
                         _tmp = parseCode(pos + 1);
                         pos = stoi(_tmp.back());
-                        if (tokens[line][pos].type == "RIGHT_BRACKET" && brackets > 0) {
-                            brackets--;
-                            pos++;
-                        }
                         _tmp.pop_back();
-                        // cout << _tmp[0] << endl;
                         if (_tmp[0] != "null") { 
                             tmp.push_back(_tmp[0]);
                             tmp.push_back(_tmp[1]);
                         }
+                        
+                        if (tokens[line][pos].type == "RIGHT_BRACKET" && brackets > 0) {
+                            brackets--;
+                        }
+                        
 
-                    }
-                    cout << "out while pos: " << pos << endl;
+                    } while (pos + 1 < tokens[line].size() && (tokens[line][pos].type != "RIGHT_BRACKET" || brackets > 0));
                     cout << "br: " << brackets << endl;
-                    if (match("COMA", pos)) {
+                    if (match("COMA", pos) || match("RIGHT_BRACKET", pos)) {
                         pos++;
                     }
-
-                    if (tmp.size() == 0) { tmp.push_back("novalue"); }
                     
                     tmp = exec(i.value, tmp);
                 }
-                else { tmp = exec(i.value, { "novalue" }); }
+                else { tmp = exec(i.value, { "", "NULL" }); }
 
             } else {
                 tmp = {i.value, "FUNCTION"};
             }
-            if (tmp.size() == 0) { tmp.push_back("novalue"); }
+
+            tmp.push_back(arg);
             tmp.push_back(to_string(pos));
-            // cout << "pos2: " << pos << endl;
             return tmp;
 
         }
         else if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) != objects["VARIABLE"].end()) {
             tmp.push_back(variables[i.value]->value);
             tmp.push_back(variables[i.value]->type);
+            tmp.push_back(arg);
             tmp.push_back(to_string(pos));
-            //cout << "Exception on pos: " << line << ":" << pos << "\n???" << endl;
             return tmp;
 
         }
@@ -408,15 +394,16 @@ public:
             }
             tmp.push_back(rttmp[0]);
             tmp.push_back(rttmp[1]);
-            // cout << rttmp[1] << endl;
+            tmp.push_back(arg);
             tmp.push_back(rttmp.back());
         }
         else if (i.type == "UNDEFINED_STRING" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
-            return {i.value, "BOOLEAN", to_string(pos)};
+            return {i.value, "BOOLEAN", arg, to_string(pos)};
         }
         else {
             tmp.push_back("null");
             tmp.push_back("NULL");
+            tmp.push_back(arg);
             tmp.push_back(to_string(pos));
         }
         return tmp;
@@ -432,17 +419,28 @@ public:
             pos++;
         }
         auto tmp = _parseCode(pos);
-        // cout << "pos: " << pos << endl;
         pos = stoi(tmp.back());
         
         string ret = tmp[0];
         string rettype = tmp[1];
-        // string complus = tmp[2];
+        string arg;
+
+        if (tmp.size() > 3) {
+            arg = tmp[2];
+        }
+        
         do {
-            if (rettype == "STRING") {
+            cout << "before if string: " << pos << endl;
+            if (rettype == "STRING" && arg == "new") {
                 pos++;
             }
-            if (pos + 1 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && (match("NUMBER", pos + 1) || match("LEFT_BRACKET", pos + 1))) {
+            cout << "after if string: " << pos << endl;
+
+            if (tokens[line][pos].type == "RIGHT_BRACKET" && brackets > 0) {
+                brackets--;
+            }
+
+            if (pos + 1 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && (match("NUMBER", pos + 1) || match("LEFT_BRACKET", pos + 1) || match("UNDEFINED_STRING", pos + 1))) {
                 if (match("LEFT_BRACKET", pos - 2) && !match("UNDEFINED_STRING", pos - 3)) {
                     pos--;
                 }
@@ -453,6 +451,7 @@ public:
             }
 
             if (pos + 2 < tokens[line].size() && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 1].value + tokens[line][pos + 2].value) != booloperators.end()) {
+                cout << "rettype: " << rettype << endl;
                 auto _tmp = parseCode(pos + 3, false);
                 auto __tmp = processBoolean({ ret, rettype, _tmp[0], _tmp[1] }, pos, stoi(_tmp.back()));
                 ret = __tmp[0];
@@ -469,19 +468,11 @@ public:
                 pos = stoi(__tmp.back());
             }
             
-            if (wh && pos + 1 < tokens[line].size() && !match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1)) {pos++;}
+            if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) || brackets > 0)) {pos++;}
 
-        } while (pos + 1 < tokens[line].size() && wh && !match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1));
-        while (brackets > 0) {
-            if (match("RIGHT_BRACKET", pos - 1)) {
-                brackets--;
-            }
-            pos++;
-        }
-        // if (complus == "1") {pos++;}
-        // if (pos < tokens[line].size() && (tokens[line][pos].type == "RIGHT_BRACKET" && match("COMA", pos))) {complus = "1";} else {complus = "0";}
+        } while (pos + 1 < tokens[line].size() && wh && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) || brackets > 0));
+
         cout << "end parseCode" << endl;
-        // cout << "ret: " << ret << endl;
         cout << "pos: " << pos << endl;
         return {ret, rettype, to_string(pos)};
     }
@@ -500,17 +491,15 @@ public:
             else if (tokens[line].size() == 1 && tokens[line][0].type == "HASHTAG") {
                 continue;
             }
-            // cout << "Line: " << line << endl;
+            cout << "Line: " << line + 1 << endl;
             var_preprocess();
             auto i = tokens[line][pos];
-            // cout << i.value << " " << startline << endl;
             if (i.type == "UNDEFINED_STRING") {
                 if (find(keywords.begin(), keywords.end(), i.value) != keywords.end()) {
 
                     if (i.value == "func" && match("UNDEFINED_STRING", pos)) {
                         objects["FUNCTION"].push_back(tokens[line][pos + 1].value);
                         if (match("LEFT_BRACKET", pos + 1)) {
-                            // cout << "Create function: " << tokens[line][pos + 1].value << endl;
                             vector<Argument> args = {};
                             string value;
                             string name;
@@ -528,7 +517,6 @@ public:
                                         value = tmp[0];
                                         type = tmp[1];
                                         _pos = stoi(tmp.back());
-                                        // cout << "pos: " << _pos << endl;
                                     }
                                     else {
                                         auto tmp = parseCode(_pos);
@@ -543,7 +531,7 @@ public:
                                 }
                                 _pos++;
                             }
-                            // if (match("LEFT_FIGURE_BRACKET", _pos) || tokens[line + 1][0].type == "LEFT_FIGURE_BRACKET") {
+
                             int _line = line;
                             if (!tokenInLine(line, "LEFT_FIGURE_BRACKET")) {
                                 _line++;
@@ -560,12 +548,10 @@ public:
                             int _startline = 0;
                             int _starttoken = 0;
                             int _endline = 0;
-                            // cout << _pos + 2 << " " << tokens[line].size() << endl;
-                            // _startline = _line;
+
                             if (_pos + 2 < tokens[line].size()) {
                                 _startline = _line;
                                 _starttoken = _pos + 2;
-                                // cout << "yes" << endl;
                             } else {
                                 _startline = _line;
                                 if (_startline == line) {
@@ -576,7 +562,6 @@ public:
                                 }
                             }
                             
-                            // _line++;
                             do {
                                 for (auto token : tokens[_line]) {
                                     if (token.type == "RIGHT_FIGURE_BRACKET") {
@@ -591,7 +576,6 @@ public:
                                 
                             } while (brackets != 0);
                             _endline = _line;
-                            // cout << format("%d %d %d", _startline, _starttoken, _endline) << endl;
 
                             functions[tokens[line][pos + 1].value] = new Function(args, {_startline, _starttoken, _endline});
                             line = _line;
@@ -607,21 +591,20 @@ public:
                 }
                 else if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) != objects["VARIABLE"].end()) {
                     auto tmp = parseCode(pos + 2);
-                    // cout << tmp.size() << endl;
                     createVariable(i.value, tmp[0], tmp[1]);
                 }
                 else if (find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), i.value) != objects["FUNCTION"].end()) {
                     parseCode(pos);
                 }
-                // if (variables.find("out") != variables.end()) {
-                // cout << variables["out"]->value << endl;
-                // eraseVariable("out");
-                // }
+                if (variables.find("out") != variables.end()) {
+                cout << variables["out"]->value << endl;
+                eraseVariable("out");
+                }
 
-                // if (variables.find("outtype") != variables.end()) {
-                // cout << variables["outtype"]->type << endl;
-                // eraseVariable("outtype");
-                // }
+                if (variables.find("outtype") != variables.end()) {
+                cout << variables["outtype"]->type << endl;
+                eraseVariable("outtype");
+                }
             }
             pos = 0;
         }
