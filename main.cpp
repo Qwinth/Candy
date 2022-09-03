@@ -20,8 +20,8 @@ int main(int argc, char * argv[]){
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    // if (argc > 1) {
-        ifstream file("functest.cd");
+    if (argc > 1) {
+        ifstream file(argv[1]);
         stringstream code;
         code << file.rdbuf();
         file.close();
@@ -32,12 +32,10 @@ int main(int argc, char * argv[]){
         for (int t = 0; t < codelines.size(); t++){
             tokenlist[t] = l.tokenize(l.disassemble(codelines[t]));
         }
-        // for (auto i : tokenlist[0]) {
-        //     cout << i.value << endl;
-        // }
-        Parser p(tokenlist, "functest.cd");
+        code.str(std::string());
+        Parser p(tokenlist, argv[1]);
         p.runCode();
-    // }
+    }
 
     return 0;
 }
