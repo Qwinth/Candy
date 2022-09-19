@@ -2,13 +2,13 @@
 #include "CandyObj/FunctionObj.hpp"
 #include "CandyObj/VariableObj.hpp"
 #include "CandyObj/ListObj.hpp"
-#include "../libs/strlib.hpp"
+#include "CandyObj/BytesObj.hpp"
 
 using namespace std;
 class Parser {
     map<int, vector<Token>> tokens = {};
     int line = 0;
-
+    int recursion_depth = 0;
     map<string, vector<string>> objects = { {"FUNCTION", {"out", "outln", "input", "len", "type", "parseInt", "parseString", "parseBool", "exec"}}, {"VARIABLE", {"__file__"}} };
     vector<string> keywords = { "if", "else", "for", "while", "continue", "break", "in", "import", "return", "func" };
     vector<string> booloperators = { "==", "!=", ">=", "<=", ">", "<" };
@@ -16,6 +16,7 @@ class Parser {
     vector<string> boolean = { "false", "true" };
     map<string, Variable*> variables = {};
     map<string, Function*> functions = {};
+    map<string, Bytes*> bytesArrays = {};
     vector<string> system_functions = {"out", "outln", "input", "len", "type", "parseInt", "parseString", "parseBool", "exec"};
 
 
@@ -76,6 +77,9 @@ public:
     }
 
     vector<string> execsf(string fname, vector<string> args) {
+        if (args.size() == 0) {
+            args = {"", "STRING"};
+        }
         vector<string> ret = {"novalue", "NULL"};
         if (fname == "out") {
             string outdata = args[0];
@@ -113,7 +117,10 @@ public:
             if (all_of(args[0].begin(), args[0].end(), ::isdigit)) {
                 ret = {args[0], "NUMBER"};
             }
-            else if (find(boolean.begin(), boolean.end(), args[0]) != boolean.end()) {
+            else if (args[0][0] == '-' & all_of(args[0].begin() + 1, args[0].end(), ::isdigit)) {
+                ret = {args[0], "NUMBER"};
+            }
+            else if (find(boolean.begin(), boolean.end(), args[0]) != boolean.end() && args[1] == "BOOLEAN") {
                 if (args[0] == "true") {
                     ret = {"1", "NUMBER"};
                 }
@@ -129,7 +136,7 @@ public:
             if (args[0] == "true" || args[0] == "false") {
                 ret = {args[0], "BOOLEAN"};
             }
-            else if (args[0] == "1" || args[0] == "0") {
+            else if (args[1] == "NUMBER" && (args[0] == "1" || args[0] == "0")) {
                 if (args[0] == "1") {
                     ret = {"true", "BOOLEAN"};
                 }
@@ -150,6 +157,7 @@ public:
         }
         else {
             auto vec = functions[fname]->tokenpos;
+
             int _line = line;
             ret = executeCode(vec[0], vec[1], vec[2], true);
             line = _line;
@@ -176,7 +184,9 @@ public:
         if (startnum == "(") {
             rb++;
         }
+
         numtokens.push_back(startnum);
+        // cout << "numtokens: " << numtokens[0] << endl;
         while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "UNDEFINED_STRING" || find(mathoperators.begin(), mathoperators.end(), tokens[line][pos].value) != mathoperators.end() || (tokens[line][pos].type == "LEFT_BRACKET" || (rb != 0 && tokens[line][pos].type == "RIGHT_BRACKET")))) {
             if (tokens[line][pos].type == "LEFT_BRACKET") {
                 __tmp = tokens[line][pos].value;
@@ -187,11 +197,20 @@ public:
                 rb--;
             }
             else if (tokens[line][pos].type == "NUMBER") {
-                auto _tmp = parseNumber(pos);
+                auto _tmp = _parseCode(pos);
                 __tmp = _tmp[0];
                 pos = stoi(_tmp.back());
             }
-            else if ((tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos].value) != objects["VARIABLE"].end())) {
+            else if (tokens[line][pos].type == "MINUS" && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos - 1].value) != mathoperators.end()) {
+                auto _tmp = _parseCode(pos);
+                __tmp = _tmp[0];
+                pos = stoi(_tmp.back());
+            }
+            else if (tokens[line][pos].type == "MULTIPLICATION" && match("MULTIPLICATION", pos)) {
+                __tmp = "**";
+                pos++;
+            }
+            else if (tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos].value) != objects["VARIABLE"].end()) {
                 if (variables[tokens[line][pos].value]->type == "NUMBER") {
                     __tmp = variables[tokens[line][pos].value]->value;
                 }
@@ -200,10 +219,24 @@ public:
                     exit(-1);
                 }
             }
+            else if (tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), tokens[line][pos].value) != objects["FUNCTION"].end()) {
+                auto _tmp = _parseCode(pos);
+                if (_tmp[1] == "NUMBER") {
+                    __tmp = _tmp[0];
+                }
+                pos = stoi(_tmp.back());
+                if (tokens[line][pos].type == "COMA") {
+                    pos--;
+                }
+            }
             else {
                 __tmp = tokens[line][pos].value;
             }
             numtokens.push_back(__tmp);
+            pos++;
+            
+        }
+        if (pos < tokens[line].size() && tokens[line][pos].type == "COMA") {
             pos++;
         }
 
@@ -228,6 +261,11 @@ public:
                 i = formatNumber(to_string(stold(i) * stold(numtokens[_pos + 2])));
             }
 
+            if (numtokens[_pos + 1] == "**") {
+                long double operand = stold(i);
+                i = formatNumber(to_string(pow(operand, stold(numtokens[_pos + 2]))));
+            }
+
             if (numtokens[_pos + 1] == "/") {
                 i = formatNumber(to_string(stold(i) / stold(numtokens[_pos + 2])));
             }
@@ -242,7 +280,7 @@ public:
     vector<string> parseNumber(int pos) {
         vector<string> floattmp = { "" };
 
-        while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "DOT")) {
+        while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "DOT" || tolower(tokens[line][pos].value[0]) == 'x')) {
             floattmp[0] += tokens[line][pos].value;
             pos++;
         }
@@ -305,6 +343,54 @@ public:
         return {boolean[0], "BOOLEAN", to_string(pos_ex)};
     }
 
+    vector<int> parseBrackets(int pos) {
+        int _line = line;
+        if (!tokenInLine(line, "LEFT_FIGURE_BRACKET")) {
+            _line++;
+            while (true) {
+                if (tokens[_line].size() > 0) {
+                    if (tokens[_line][0].type == "LEFT_FIGURE_BRACKET" && tokens[_line][0].type != "HASHTAG") {
+                        break;
+                    }
+                }
+                _line++;
+            }
+        }
+        int brackets = 0;
+        int _startline = 0;
+        int _starttoken = 0;
+        int _endline = 0;
+
+        if (pos + 2 < tokens[line].size()) {
+            _startline = _line;
+            _starttoken = pos + 2;
+        } else {
+            _startline = _line;
+            if (_startline == line) {
+                _startline++;
+            }
+            if (tokens[_startline][0].type == "LEFT_FIGURE_BRACKET" && tokens[_startline].size() > 1) {
+                _starttoken++;
+            }
+        }
+        
+        do {
+            for (auto token : tokens[_line]) {
+                if (token.type == "RIGHT_FIGURE_BRACKET") {
+                    brackets--;
+                } else if (token.type == "LEFT_FIGURE_BRACKET") {
+                    brackets++;
+                }
+            }
+            if (brackets != 0) {
+                _line++;
+            }
+            
+        } while (brackets != 0);
+        _endline = _line;
+        return {_startline, _starttoken, _endline};
+    }
+
     vector<string> _parseCode(int pos) {
         vector<string> tmp = {};
         string arg;
@@ -316,7 +402,11 @@ public:
 
         if (i.type == "NUMBER") {
             auto _tmp = parseNumber(pos);
-            return {_tmp[0], i.type, arg, _tmp.back()};
+            string ret = _tmp[0];
+            if (tolower(_tmp[0][1]) == 'x') {
+                ret = to_string(stoll(_tmp[0], 0, 16));
+            }
+            return {ret, i.type, arg, _tmp.back()};
 
         }
         else if (i.type == "STRING") {
@@ -334,17 +424,22 @@ public:
             int brackets = 0;
             if (match("LEFT_BRACKET", pos)) {
                 int num = 1;
+                string name = tokens[line][pos].value;
                 while (tokens[line][pos + 1].type == "LEFT_BRACKET" && tokens[line][tokens[line].size() - num].type == "RIGHT_BRACKET") {
                     brackets++;
                     pos++;
                     num++;
                 }
+
                 if (match("UNDEFINED_STRING", pos) || match("NUMBER", pos) || match("MINUS", pos) || match("QUOTE", pos) || match("LEFT_BRACKET", pos)) {
                     
                     do {
                         _tmp = parseCode(pos + 1);
+                        
                         pos = stoi(_tmp.back());
+
                         _tmp.pop_back();
+
                         if (_tmp[0] != "null") { 
                             tmp.push_back(_tmp[0]);
                             tmp.push_back(_tmp[1]);
@@ -354,15 +449,23 @@ public:
                             brackets--;
                         }
                         
-
                     } while (pos + 1 < tokens[line].size() && (tokens[line][pos].type != "RIGHT_BRACKET" || brackets > 0));
+
                     if (match("COMA", pos) || match("RIGHT_BRACKET", pos)) {
                         pos++;
+                        arg = "pos+";
                     }
                     
                     tmp = exec(i.value, tmp);
                 }
-                else { tmp = exec(i.value, { "", "NULL" }); }
+                else {
+                    tmp = exec(i.value, { "", "NULL" });
+                    pos++;
+                    if (match("COMA", pos) || match("RIGHT_BRACKET", pos)) {
+                        pos++;
+                        arg = "pos+";
+                    }
+                }
 
             } else {
                 tmp = {i.value, "FUNCTION"};
@@ -391,14 +494,19 @@ public:
             }
             tmp.push_back(rttmp[0]);
             tmp.push_back(rttmp[1]);
+
             tmp.push_back(arg);
             tmp.push_back(rttmp.back());
         }
         else if (i.type == "UNDEFINED_STRING" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
             return {i.value, "BOOLEAN", arg, to_string(pos)};
         }
-        else if (i.type == "MINUS" && (variables.find(tokens[line][pos + 1].value) != variables.end() || tokens[line][pos + 1].type == "NUMBER")) {
-            vector<string> _tmp = _parseCode(pos + 1);
+        else if (i.type == "MINUS" && (tokens[line][pos + 1].type == "UNDEFINED_STRING" || tokens[line][pos + 1].type == "NUMBER" || tokens[line][pos + 1].type == "LEFT_BRACKET" || tokens[line][pos + 1].type == "MINUS")) {
+            vector<string> _tmp;
+            if (tokens[line][pos + 1].type == "LEFT_BRACKET") {
+                _tmp = parseCode(pos + 1);
+            }
+            else {_tmp = _parseCode(pos + 1);}
             tmp.push_back(formatNumber(to_string(-stold(_tmp[0]))));
             tmp.push_back(_tmp[1]);
             tmp.push_back(arg);
@@ -414,6 +522,14 @@ public:
     }
 
     vector<string> parseCode(int pos, bool wh = true) {
+        
+        if (recursion_depth <= 3501) {
+            recursion_depth++;
+        } else {
+            cout << "Exception: recursion limit error" << endl;
+            exit(-1);
+        }
+
         int brackets = 0;
         while (tokens[line][pos].type == "LEFT_BRACKET") {
             brackets++;
@@ -421,7 +537,6 @@ public:
         }
         auto tmp = _parseCode(pos);
         pos = stoi(tmp.back());
-        
         string ret = tmp[0];
         string rettype = tmp[1];
         string arg;
@@ -429,7 +544,6 @@ public:
         if (tmp.size() > 3) {
             arg = tmp[2];
         }
-        
         do {
             if (rettype == "STRING" && arg == "new") {
                 pos++;
@@ -439,28 +553,44 @@ public:
                 brackets--;
             }
 
-            if (pos + 2 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 2].value) != mathoperators.end()) {
+            if (pos + 2 < tokens[line].size() && tokens[line][pos].type == "UNDEFINED_STRING" && ((find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && match("ASSIGN", pos + 1)) || (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) || (tokens[line][pos + 1].type == tokens[line][pos + 2].type && (match("PLUS", pos) || match("MINUS", pos))))) {
                 if (match("PLUS", pos) && match("PLUS", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) + 1));
+                    // cout << "var " << variables[tokens[line][pos].value]->value << endl;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) + 1));
+                    pos += 2;
                 }
                 else if (match("MINUS", pos) && match("MINUS", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) - 1));
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) - 1));
+                    pos += 2;
                 }
                 else if (match("PLUS", pos) && match("ASSIGN", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) + stold(tokens[line][pos + 3].value)));
+                    vector<string> operand = parseNumber(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) + stold(operand[0])));
+                    pos = stoi(operand[1]);
                 }
                 else if (match("MINUS", pos) && match("ASSIGN", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) - stold(tokens[line][pos + 3].value)));
+                    vector<string> operand = parseNumber(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) - stold(operand[0])));
+                    pos = stoi(operand[1]);
                 }
                 else if (match("MULTIPLICATION", pos) && match("ASSIGN", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) * stold(tokens[line][pos + 3].value)));
+                    vector<string> operand = parseNumber(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) * stold(operand[0])));
+                    pos = stoi(operand[1]);
+                }
+                else if (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) {
+                    vector<string> operand = parseNumber(pos + 4);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(pow(stold(ret), stold(operand[0]))));
+                    pos = stoi(operand[1]);
                 }
                 else if (match("DIVISION", pos) && match("ASSIGN", pos + 1)) {
-                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(variables[tokens[line][pos].value]->value) / stold(tokens[line][pos + 3].value)));
+                    vector<string> operand = parseNumber(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_string(stold(ret) / stold(operand[0])));
+                    pos = stoi(operand[1]);
                 }
             }
 
-            if (pos + 1 < tokens[line].size() && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && (match("NUMBER", pos + 1) || match("LEFT_BRACKET", pos + 1) || match("UNDEFINED_STRING", pos + 1))) {
+            else if (pos + 2 < tokens[line].size() && arg != "pos+" && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end()) {
                 if (match("LEFT_BRACKET", pos - 2) && !match("UNDEFINED_STRING", pos - 3)) {
                     pos--;
                 }
@@ -470,7 +600,7 @@ public:
                 pos = stoi(_tmp.back());
             }
 
-            if (pos + 2 < tokens[line].size() && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 1].value + tokens[line][pos + 2].value) != booloperators.end()) {
+            else if (pos + 2 < tokens[line].size() && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 1].value + tokens[line][pos + 2].value) != booloperators.end()) {
                 auto _tmp = parseCode(pos + 3, false);
                 auto __tmp = processBoolean({ ret, rettype, _tmp[0], _tmp[1] }, pos, stoi(_tmp.back()));
                 ret = __tmp[0];
@@ -490,6 +620,7 @@ public:
             if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) || brackets > 0)) {pos++;}
 
         } while (pos + 1 < tokens[line].size() && wh && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) || brackets > 0));
+        recursion_depth--;
         return {ret, rettype, to_string(pos)};
     }
 
@@ -507,7 +638,6 @@ public:
             else if (tokens[line].size() == 1 && tokens[line][0].type == "HASHTAG") {
                 continue;
             }
-
             var_preprocess();
             auto i = tokens[line][pos];
             if (i.type == "UNDEFINED_STRING") {
@@ -548,52 +678,9 @@ public:
                                 _pos++;
                             }
 
-                            int _line = line;
-                            if (!tokenInLine(line, "LEFT_FIGURE_BRACKET")) {
-                                _line++;
-                                while (true) {
-                                    if (tokens[_line].size() > 0) {
-                                        if (tokens[_line][0].type == "LEFT_FIGURE_BRACKET" && tokens[_line][0].type != "HASHTAG") {
-                                            break;
-                                        }
-                                    }
-                                    _line++;
-                                }
-                            }
-                            int brackets = 0;
-                            int _startline = 0;
-                            int _starttoken = 0;
-                            int _endline = 0;
-
-                            if (_pos + 2 < tokens[line].size()) {
-                                _startline = _line;
-                                _starttoken = _pos + 2;
-                            } else {
-                                _startline = _line;
-                                if (_startline == line) {
-                                    _startline++;
-                                }
-                                if (tokens[_startline][0].type == "LEFT_FIGURE_BRACKET" && tokens[_startline].size() > 1) {
-                                    _starttoken++;
-                                }
-                            }
-                            
-                            do {
-                                for (auto token : tokens[_line]) {
-                                    if (token.type == "RIGHT_FIGURE_BRACKET") {
-                                        brackets--;
-                                    } else if (token.type == "LEFT_FIGURE_BRACKET") {
-                                        brackets++;
-                                    }
-                                }
-                                if (brackets != 0) {
-                                    _line++;
-                                }
-                                
-                            } while (brackets != 0);
-                            _endline = _line;
-                            functions[tokens[line][pos + 1].value] = new Function(args, {_startline, _starttoken, _endline});
-                            line = _line;
+                            auto _tmp = parseBrackets(_pos);
+                            functions[tokens[line][pos + 1].value] = new Function(args, _tmp);
+                            line = _tmp[2];
                         }
                     }
                     else if (i.value == "return") {
@@ -605,7 +692,7 @@ public:
 
                 }
                 else if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) != objects["VARIABLE"].end()) {
-                    if (find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 2].value) == mathoperators.end() || (match("MINUS", pos + 1) && (match("UNDEFINED_STRING", pos + 2) || match("NUMBER", pos + 2)))) {
+                    if (find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 2].value) == mathoperators.end() || (match("MINUS", pos + 1) && (match("UNDEFINED_STRING", pos + 2) || match("NUMBER", pos + 2) || match("LEFT_BRACKET", pos + 2)))) {
                         auto tmp = parseCode(pos + 2);
                         createVariable(i.value, tmp[0], tmp[1]);
                     }
