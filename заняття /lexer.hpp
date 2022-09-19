@@ -70,21 +70,23 @@ class Lexer {
             quotes_opened = "";
             for (auto tmp : undefined_elements){
                 i = tmp.second;
-                if (spec_characters_name.find(i) != spec_characters_name.end()){
+                if (spec_characters_name.find(i) != spec_characters_name.end() && (quotes_opened == "" || find(quotes.begin(), quotes.end(), i) != quotes.end())){
                     if (find(quotes.begin(), quotes.end(), i) != quotes.end()){
-                        if (quotes_opened != "")
+                        if (quotes_opened != "") {
                             quotes_opened = "";
-                        else
+                        }  
+                        else {
                             quotes_opened = quotes[find(quotes.begin(), quotes.end(), i) - quotes.begin()];
+                        }
+                            
                     }
 
                     tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
                 
-                } else if (all_of(i.begin(), i.end(), ::isdigit) && quotes_opened == "") {
+                } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x'))) {
                     tokens.push_back(Token("NUMBER", i, tmp.first));
 
                 } else if (quotes_opened != "") {
-
                     for (int tmp = 0; tmp < i.length(); tmp++) {
                         if (i[tmp] == '\\' && control_characters.find(i[tmp + 1]) != control_characters.end()) {
                             i.replace(tmp, 2, control_characters[i[tmp + 1]]);
