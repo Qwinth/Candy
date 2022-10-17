@@ -3,20 +3,19 @@ using namespace std;
 
 class Lexer {
     vector<string> spec_characters = {"(", ")", "'", "\"", "{", "}", "[", "]", "=", "!", "+", "-", "*", "/", "%", ":", ";", ".", ",", "<", ">", "#", "\\"};
-    map<char, string> control_characters = {{'0', "\0"}, {'a', "\a"}, {'b', "\b"}, {'t', "\t"}, {'n', "\n"}, {'v', "\v"}, {'f', "\f"}, {'r', "\r"}, {'\\', "\\"}};
-    map<string, string> spec_characters_name = {{"(", "LEFT_BRACKET"}, {")", "RIGHT_BRACKET"}, {"'", "QUOTE"}, {"\"", "QUOTE"}, {"{", "LEFT_FIGURE_BRACKET"}, {"}", "RIGHT_FIGURE_BRACKET"}, {"[", "RIGHT_SQUARE_BRACKET"}, {"]", "LEFT_SQUARE_BRACKET"}, {"=", "ASSIGN"}, {"!", "EXCLAMATION_MARK"}, {"+", "PLUS"}, {"-", "MINUS"}, {"*", "MULTIPLICATION"}, {"/", "DIVISION"}, {"%", "INTEREST"}, {":", "DOUBLE_DOT"}, {";", "DOT_COMA"}, {".", "DOT"}, {",", "COMA"}, {"<", "LEFT_INEQUALITY_BRACKET"}, {">", "RIGHT_INEQUALITY_BRACKET"}, {"#", "HASHTAG"}, {"\\", "INVERSE_SLASH"}};
+    map<string, string> spec_characters_name = {{"(", "LEFT_BRACKET"}, {")", "RIGHT_BRACKET"}, {"'", "QUOTE"}, {"\"", "QUOTE"}, {"{", "LEFT_FIGURE_BRACKET"}, {"}", "RIGHT_FIGURE_BRACKET"}, {"[", "RIGHT_SQUARE_BRACKET"}, {"]", "LEFT_SQUARE_BRACKET"}, {"=", "ASSIGN"}, {"!", "EXCLAMATION_MARK"}, {"+", "PLUS"}, {"-", "MINUS"}, {"*", "MULTIPLICATION"}, {"/", "DIVISION"}, {"%", "PERCENT"}, {":", "DOUBLE_DOT"}, {";", "DOT_COMA"}, {".", "DOT"}, {",", "COMA"}, {"<", "LEFT_INEQUALITY_BRACKET"}, {">", "RIGHT_INEQUALITY_BRACKET"}, {"#", "HASHTAG"}, {"\\", "INVERSE_SLASH"}};
     vector<string> quotes = {"'", "\""};
     string quotes_opened;
     string comment = "#", space = " ";
     public:
         map<int, string> disassemble(string code_string) {
             map<int, string> undefined_elements = {};
-            string undefined = "";
-            string i = "";
-            int pos = 0;
+            string undefined;
+            string i;
+            int pos;
             int tmp = 0;
-            for (tmp = 0; tmp != code_string.length(); tmp++) {
-                pos = tmp;
+            for (pos = 0, tmp = 0; tmp < code_string.length(); tmp++, pos++) {
+                
                 i = code_string[tmp];
                 if (find(spec_characters.begin(), spec_characters.end(), i) != spec_characters.end()) {
                     
@@ -48,7 +47,7 @@ class Lexer {
                 } else {
                 if (quotes_opened != "")
                     undefined += i;
-                else if (i != space)
+                else if (i != space && i != "\t")
                     undefined += i;
                 else {
                     if (undefined != ""){
@@ -80,20 +79,14 @@ class Lexer {
                         }
                             
                     }
+                    else {
+                        tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
+                    }
 
-                    tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
-                
                 } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x'))) {
                     tokens.push_back(Token("NUMBER", i, tmp.first));
 
                 } else if (quotes_opened != "") {
-                    for (int tmp = 0; tmp < i.length(); tmp++) {
-                        if (i[tmp] == '\\' && control_characters.find(i[tmp + 1]) != control_characters.end()) {
-                            i.replace(tmp, 2, control_characters[i[tmp + 1]]);
-                        } else if (i[tmp] == '\\') {
-                            i.erase(tmp, 1);
-                        }
-                    }
                     tokens.push_back(Token("STRING", i, tmp.first));
                 } else {
                     tokens.push_back(Token("UNDEFINED_STRING", i, tmp.first));                    
