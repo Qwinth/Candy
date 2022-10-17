@@ -1,0 +1,13 @@
+num = 0
+pi = 3
+num2 = 2
+
+while num < 10000 {
+	pi += 4 / (num2 * (num2 + 1) * (num2 + 2))
+	num2 += 2
+	pi -= 4 / (num2 * (num2 + 1) * (num2 + 2))
+	num2 += 2
+
+	num++
+}
+outln(pi)
