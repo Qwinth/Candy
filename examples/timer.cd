@@ -14,7 +14,7 @@ if t2 > 0 {
 		t2--
 
 		if t2 <= 0 {
-			out("\r                ")
+			out("\r                  ")
 			outln("\rTime is up!")
 			break
 		}
