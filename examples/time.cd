@@ -1,0 +1,22 @@
+mode = input("Enter mode: ")
+t2 = parseInt(input("Enter time: "))
+
+if mode == "m" { t2 *= 60 }
+if mode == "h" { t2 *= 60 * 60 }
+
+t = time()
+if t2 > 0 {
+	while true {
+		out("\r                  ")
+		out("\rseconds:", t2)
+		while time() - t < 1 {}
+		t = time()
+		t2--
+
+		if t2 <= 0 {
+			out("\r                ")
+			outln("\rTime is up!")
+			break
+		}
+	}
+}
