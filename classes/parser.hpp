@@ -765,7 +765,7 @@ public:
                                 line = oldline;
 
                                 if (ret.back() == "break") {
-                                    ret.pop_back();
+                                    ret = {"novalue", "NULL"};
                                     break;
                                 }
                                 else if (ret.back() == "return") {
