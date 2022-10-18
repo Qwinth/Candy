@@ -1,10 +1,13 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS
 #include <string>
 #include <vector>
+#include <stdarg.h>
+#include <random>
+#include <sstream>
+#include <cstring>
 using namespace std;
 
-inline string format(const char* fmt, ...){
+std::string format(const char* fmt, ...){
     int size = 512;
     char* buffer = 0;
     buffer = new char[size];
@@ -17,18 +20,18 @@ inline string format(const char* fmt, ...){
         buffer = new char[nsize+1]; //+1 for /0
         nsize = vsnprintf(buffer, size, fmt, vl);
     }
-    string ret(buffer);
+    std::string ret(buffer);
     va_end(vl);
     delete[] buffer;
     return ret;
 }
 
-vector<string> split (string s, string delimiter) {
+vector<std::string> split(std::string s, std::string delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-    string token;
-    vector<string> res;
+    std::string token;
+    vector<std::string> res;
 
-    while ((pos_end = s.find (delimiter, pos_start)) != string::npos) {
+    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
         token = s.substr (pos_start, pos_end - pos_start);
         pos_start = pos_end + delim_len;
         res.push_back (token);
@@ -38,13 +41,17 @@ vector<string> split (string s, string delimiter) {
     return res;
 }
 
-string urlDecode(string &SRC) {
-    string ret;
+std::string urlDecode(std::string &SRC) {
+    std::string ret;
     char ch;
     int i, ii;
     for (i=0; i<SRC.length(); i++) {
         if (int(SRC[i])==37) {
-            sscanf(SRC.substr(i+1,2).c_str(), "%x", &ii);
+#ifdef _WIN32
+            sscanf_s(SRC.substr(i+1,2).c_str(), "%x", &ii);
+#else
+            sscanf(SRC.substr(i + 1, 2).c_str(), "%x", &ii);
+#endif
             ch=static_cast<char>(ii);
             ret+=ch;
             i=i+2;
@@ -63,7 +70,7 @@ void hexchar(unsigned char c, unsigned char& hex1, unsigned char& hex2)
     hex2 += hex2 <= 9 ? '0' : 'a' - 10;
 }
 
-string urlEncode(string s)
+std::string urlEncode(std::string s)
 {
     const char* str = s.c_str();
     vector<char> v(s.size());
@@ -93,5 +100,36 @@ string urlEncode(string s)
         }
     }
 
-    return string(v.cbegin(), v.cend());
+    return std::string(v.cbegin(), v.cend());
+}
+
+std::string uuid4() {
+    static std::random_device              rd;
+    static std::mt19937                    gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+    std::stringstream ss;
+    int i;
+    ss << std::hex;
+    for (i = 0; i < 8; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 4; i++) {
+        ss << dis(gen);
+    }
+    ss << "-4";
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 12; i++) {
+        ss << dis(gen);
+    };
+    return ss.str();
 }
