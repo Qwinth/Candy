@@ -258,7 +258,7 @@ public:
                     __tmp = _tmp[0];
                 }
                 else {
-                    cout << format("Exception on pos: %d:%d\nUnnable to combine NUMBER and %s\n", line + 1, tokens[line][pos].pos, variables[tokens[line][pos].value]->type.c_str());
+                    cout << strformat("Exception on pos: %d:%d\nUnnable to combine NUMBER and %s\n", line + 1, tokens[line][pos].pos, variables[tokens[line][pos].value]->type.c_str());
                     exit(-1);
                 }
             }
@@ -557,7 +557,7 @@ public:
             tmp.push_back(_tmp.back());
         }
         else if (i.type == "UNDEFINED_STRING") {
-            cout << format("Name '%s' is not defined", i.value.c_str()) << endl;
+            cout << strformat("Name '%s' is not defined", i.value.c_str()) << endl;
             exit(-1);
         }
         else {
