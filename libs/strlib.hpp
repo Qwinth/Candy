@@ -7,7 +7,7 @@
 #include <cstring>
 using namespace std;
 
-std::string format(const char* fmt, ...){
+std::string strformat(const char* fmt, ...){
     int size = 512;
     char* buffer = 0;
     buffer = new char[size];
