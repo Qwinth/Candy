@@ -41,17 +41,15 @@ int main(int argc, char * argv[]){
             code << file.rdbuf();
             file.close();
             map<int, vector<Token>> tokenlist = {};
-            auto start = chrono::high_resolution_clock::now();
             vector<string> codelines = split(code.str(), "\n");
             Lexer l;
 
             for (int t = 0; t < codelines.size(); t++) {
                 tokenlist[t] = l.tokenize(l.disassemble(codelines[t]));
             }
-            auto stop = chrono::high_resolution_clock::now();
+            
             code.str(std::string());
 
-            cout << chrono::duration_cast<chrono::microseconds>(stop - start).count() << endl;
             Parser p(tokenlist, argv, argc);
             p.runCode();
             finalize(0);
