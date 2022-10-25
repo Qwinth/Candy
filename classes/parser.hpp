@@ -79,7 +79,7 @@ public:
     void var_preprocess() {
         for (int pos = 0; pos < tokens[line].size(); pos++) {
             Token i = tokens[line][pos];
-            if (i.type == "UNDEFINED_STRING" && find(keywords.begin(), keywords.end(), i.value) == keywords.end() && find(boolean.begin(), boolean.end(), i.value) == boolean.end()) {
+            if (i.type == "UNDEFINED_TOKEN" && find(keywords.begin(), keywords.end(), i.value) == keywords.end() && find(boolean.begin(), boolean.end(), i.value) == boolean.end()) {
                 if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) == objects["VARIABLE"].end()) {
                     if (match("ASSIGN", pos) && !match("ASSIGN", pos + 1)) {
                         objects["VARIABLE"].push_back(i.value);
@@ -196,11 +196,7 @@ public:
 
     vector<string> exec(string fname, vector<string> args) {
         vector<string> ret = { "novalue", "NULL"};
-         /*cout << "start args counting" << endl;
-         for ( auto i : args ) {
-             cout << fname << " " << i << endl;
-         }
-         cout << "stop args counting" << endl;*/
+
         if (find(system_functions.begin(), system_functions.end(), fname) != system_functions.end()) {
             ret = execsf(fname, args);
         }
@@ -232,7 +228,7 @@ public:
 
         numtokens.push_back(startnum);
 
-        while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "UNDEFINED_STRING" || find(mathoperators.begin(), mathoperators.end(), tokens[line][pos].value) != mathoperators.end() || tokens[line][pos].type == "LEFT_BRACKET")) {
+        while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "UNDEFINED_TOKEN" || find(mathoperators.begin(), mathoperators.end(), tokens[line][pos].value) != mathoperators.end() || tokens[line][pos].type == "LEFT_BRACKET")) {
             if (tokens[line][pos].type == "LEFT_BRACKET") {
                 vector<string> _tmp = parseCode(pos);
                 __tmp = _tmp[0];
@@ -252,7 +248,7 @@ public:
                 __tmp = "**";
                 pos++;
             }
-            else if (tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos].value) != objects["VARIABLE"].end()) {
+            else if (tokens[line][pos].type == "UNDEFINED_TOKEN" && find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), tokens[line][pos].value) != objects["VARIABLE"].end()) {
                 auto _tmp = _parseCode(pos);
                 if (_tmp[1] == "NUMBER") {
                     __tmp = _tmp[0];
@@ -262,7 +258,7 @@ public:
                     exit(-1);
                 }
             }
-            else if (tokens[line][pos].type == "UNDEFINED_STRING" && find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), tokens[line][pos].value) != objects["FUNCTION"].end()) {
+            else if (tokens[line][pos].type == "UNDEFINED_TOKEN" && find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), tokens[line][pos].value) != objects["FUNCTION"].end()) {
                 auto _tmp = _parseCode(pos);
                 if (_tmp[1] == "NUMBER") {
                     __tmp = _tmp[0];
@@ -409,6 +405,7 @@ public:
                 _line++;
             }
         }
+
         int brackets = 0;
         int _startline = 0;
         int _starttoken = 0;
@@ -422,11 +419,8 @@ public:
             if (_startline == line) {
                 _startline++;
             }
-            if (tokens[_startline][0].type == "LEFT_FIGURE_BRACKET" && tokens[_startline].size() > 1) {
-                _starttoken++;
-            }
         }
-
+        
         do {
             for (auto token : tokens[_line]) {
                 if (token.type == "RIGHT_FIGURE_BRACKET") {
@@ -479,7 +473,7 @@ public:
                 string name = tokens[line][pos].value;
                 brackets++;
                 pos++;
-                if (match("UNDEFINED_STRING", pos) || match("NUMBER", pos) || match("MINUS", pos) || match("STRING", pos) || match("LEFT_BRACKET", pos)) {
+                if (match("UNDEFINED_TOKEN", pos) || match("NUMBER", pos) || match("MINUS", pos) || match("STRING", pos) || match("LEFT_BRACKET", pos)) {
                     do {
                         _tmp = parseCode(pos + 1);
                         pos = stoi(_tmp.back());
@@ -542,10 +536,10 @@ public:
             tmp.push_back(arg);
             tmp.push_back(rttmp.back());
         }
-        else if (i.type == "UNDEFINED_STRING" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
+        else if (i.type == "UNDEFINED_TOKEN" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
             return {i.value, "BOOLEAN", arg, to_string(pos)};
         }
-        else if (i.type == "MINUS" && (tokens[line][pos + 1].type == "UNDEFINED_STRING" || tokens[line][pos + 1].type == "NUMBER" || tokens[line][pos + 1].type == "LEFT_BRACKET" || tokens[line][pos + 1].type == "MINUS")) {
+        else if (i.type == "MINUS" && (tokens[line][pos + 1].type == "UNDEFINED_TOKEN" || tokens[line][pos + 1].type == "NUMBER" || tokens[line][pos + 1].type == "LEFT_BRACKET" || tokens[line][pos + 1].type == "MINUS")) {
             vector<string> _tmp;
             if (tokens[line][pos + 1].type == "LEFT_BRACKET") {
                 _tmp = parseCode(pos + 1);
@@ -556,7 +550,7 @@ public:
             tmp.push_back(arg);
             tmp.push_back(_tmp.back());
         }
-        else if (i.type == "UNDEFINED_STRING") {
+        else if (i.type == "UNDEFINED_TOKEN") {
             cout << strformat("Name '%s' is not defined", i.value.c_str()) << endl;
             exit(-1);
         }
@@ -605,7 +599,7 @@ public:
                 brackets--;
             }
 
-            if (pos + 2 < tokens[line].size() && tokens[line][pos].type == "UNDEFINED_STRING" && tokens[line][pos + 1].type != "ASSIGN" && ((find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && match("ASSIGN", pos + 1)) || (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) || (tokens[line][pos + 1].type == tokens[line][pos + 2].type && (match("PLUS", pos) || match("MINUS", pos))))) {
+            if (pos + 2 < tokens[line].size() && tokens[line][pos].type == "UNDEFINED_TOKEN" && tokens[line][pos + 1].type != "ASSIGN" && ((find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && match("ASSIGN", pos + 1)) || (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) || (tokens[line][pos + 1].type == tokens[line][pos + 2].type && (match("PLUS", pos) || match("MINUS", pos))))) {
                 if (match("PLUS", pos) && match("PLUS", pos + 1)) {
                     variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) + 1, 15));
                     pos += 2;
@@ -647,7 +641,7 @@ public:
             }
 
             else if (pos + 2 < tokens[line].size() && arg != "pos+" && find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 1].value) != mathoperators.end() && tokens[line][pos + 1].type != "ASSIGN") {
-                if (match("LEFT_BRACKET", pos - 2) && !match("UNDEFINED_STRING", pos - 3)) {
+                if (match("LEFT_BRACKET", pos - 2) && !match("UNDEFINED_TOKEN", pos - 3)) {
                     pos--;
                 }
 
@@ -696,22 +690,22 @@ public:
             var_preprocess();
             auto i = tokens[line][pos];
 
-            if (i.type == "UNDEFINED_STRING") {
+            if (i.type == "UNDEFINED_TOKEN") {
                 if (find(keywords.begin(), keywords.end(), i.value) != keywords.end()) {
 
-                    if (i.value == "func" && match("UNDEFINED_STRING", pos)) {
+                    if (i.value == "func" && match("UNDEFINED_TOKEN", pos)) {
                         objects["FUNCTION"].push_back(tokens[line][pos + 1].value);
                         if (match("LEFT_BRACKET", pos + 1)) {
 
                             vector<Argument> args = {};
-                            string value;
                             string name;
-                            string type;
+                            string value = "novalue";
+                            string type = "NULL";
                             int argnum = 0;
                             int _pos = pos + 2;
                             while (_pos < tokens[line].size() && tokens[line][_pos].type != "RIGHT_BRACKET") {
 
-                                if (tokens[line][_pos].type == "STRING" || tokens[line][_pos].type == "UNDEFINED_STRING" || tokens[line][_pos].type == "NUMBER") {
+                                if (tokens[line][_pos].type == "STRING" || tokens[line][_pos].type == "UNDEFINED_TOKEN" || tokens[line][_pos].type == "NUMBER") {
                                     argnum++;
                                     
                                     if (match("ASSIGN", _pos)) {
@@ -722,19 +716,19 @@ public:
                                         _pos = stoi(tmp.back());
                                     }
                                     else {
-                                        auto tmp = parseCode(_pos);
-                                        value = tmp[0];
-                                        type = tmp[1];
-                                        _pos = stoi(tmp.back());
+                                        name = tokens[line][_pos].value;
                                     }
 
                                     args.push_back(Argument(argnum, name, value, type));
-                                    value = "";
                                     name = "";
+                                    value = "novalue";
+                                    type = "NULL";
                                 }
                                 _pos++;
                             }
+
                             auto _tmp = parseBrackets(_pos);
+
                             functions[tokens[line][pos + 1].value] = new Function(args, _tmp);
                             line = _tmp[2];
                         }
@@ -765,7 +759,7 @@ public:
                                 line = oldline;
 
                                 if (ret.back() == "break") {
-                                    ret = {"novalue", "NULL"};
+                                    ret = { "novalue", "NULL" };
                                     break;
                                 }
                                 else if (ret.back() == "return") {
@@ -793,7 +787,7 @@ public:
 
                 }
                 else if (find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), i.value) != objects["VARIABLE"].end()) {
-                    if (find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 2].value) == mathoperators.end() && !match("ASSIGN", pos + 1) || (match("MINUS", pos + 1) && (match("UNDEFINED_STRING", pos + 2) || match("NUMBER", pos + 2) || match("LEFT_BRACKET", pos + 2)))) {
+                    if (find(mathoperators.begin(), mathoperators.end(), tokens[line][pos + 2].value) == mathoperators.end() && !match("ASSIGN", pos + 1) || (match("MINUS", pos + 1) && (match("UNDEFINED_TOKEN", pos + 2) || match("NUMBER", pos + 2) || match("LEFT_BRACKET", pos + 2)))) {
                         auto tmp = parseCode(pos + 2);
                         createVariable(i.value, tmp[0], tmp[1]);
                     }
@@ -803,6 +797,10 @@ public:
                 }
                 else if (find(objects["FUNCTION"].begin(), objects["FUNCTION"].end(), i.value) != objects["FUNCTION"].end()) {
                     parseCode(pos);
+                }
+                else {
+                    cout << strformat("Name '%s' is not defined", i.value.c_str()) << endl;
+                    exit(-1);
                 }
             }
             pos = 0;
