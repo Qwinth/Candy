@@ -89,7 +89,7 @@ class Lexer {
                 } else if (quotes_opened != "") {
                     tokens.push_back(Token("STRING", i, tmp.first));
                 } else {
-                    tokens.push_back(Token("UNDEFINED_STRING", i, tmp.first));                    
+                    tokens.push_back(Token("UNDEFINED_TOKEN", i, tmp.first));                    
                 }
             }
             return tokens;
