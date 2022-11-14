@@ -51,13 +51,22 @@ class Parser {
         objects["VARIABLE"].erase(find(objects["VARIABLE"].begin(), objects["VARIABLE"].end(), name));
     }
 
-    bool tokenInLine(int ln, string token) {
+    bool tokenInLine(int ln, string type) {
         for (auto i : tokens[ln]) {
-            if (i.type == token) {
+            if (i.type == type) {
                 return true;
             }
         }
         return false;
+    }
+
+    int getTokenPos(int ln, string type) {
+        for (int num = 0; num < tokens[ln].size(); num++) {
+            if (tokens[ln][num].type == type) {
+                return num;
+            }
+        }
+        return -1;
     }
 
     string to_stringWp(long double val, int n) {
@@ -91,7 +100,7 @@ public:
 
     vector<string> execsf(string fname, vector<string> args) {
         if (args.size() == 0) {
-            args = {"", "NULL"};
+            args = {"", "STRING"};
         }
         vector<string> ret = {"novalue", "NULL"};
         if (fname == "out") {
@@ -323,17 +332,6 @@ public:
         return tmp;
     }
 
-    vector<string> parseNumber(int pos) {
-        vector<string> floattmp = { "" };
-
-        while (pos < tokens[line].size() && (tokens[line][pos].type == "NUMBER" || tokens[line][pos].type == "DOT" || tolower(tokens[line][pos].value[0]) == 'x')) {
-            floattmp[0] += tokens[line][pos].value;
-            pos++;
-        }
-        floattmp.push_back(to_string(pos - 1));
-        return floattmp;
-    }
-
     vector<string> processBoolean(vector<string> value, int pos, int pos_ex) {
         if (value[1] == value[3]) {
             if (match("ASSIGN", pos) && match("ASSIGN", pos + 1)) {
@@ -410,21 +408,22 @@ public:
         int _startline = 0;
         int _starttoken = 0;
         int _endline = 0;
+        
 
-        if (pos + 2 < tokens[line].size()) {
+        if (getTokenPos(_line, "LEFT_FIGURE_BRACKET") + 1 < tokens[_line].size() && tokens[_line][getTokenPos(_line, "LEFT_FIGURE_BRACKET") + 1].type != "HASHTAG") {
             _startline = _line;
-            _starttoken = pos + 2;
-        } else {
-            _startline = _line;
-            if (_startline == line) {
-                _startline++;
-            }
+            _starttoken = getTokenPos(_line, "LEFT_FIGURE_BRACKET") + 1;
+        }
+        else {
+            _startline = _line + 1;
         }
         
+
         do {
             for (auto token : tokens[_line]) {
                 if (token.type == "RIGHT_FIGURE_BRACKET") {
                     brackets--;
+                    if (brackets == 0) { break; }
                 } else if (token.type == "LEFT_FIGURE_BRACKET") {
                     brackets++;
                 }
@@ -435,7 +434,7 @@ public:
             
         } while (brackets != 0);
         _endline = _line;
-        return {_startline, _starttoken, _endline};
+        return {_startline, _starttoken, _endline, getTokenPos(_endline, "RIGHT_FIGURE_BRACKET")};
     }
 
     vector<string> _parseCode(int pos) {
@@ -444,14 +443,14 @@ public:
         auto i = tokens[line][pos];
 
         if (i.type == "NUMBER") {
-            auto _tmp = parseNumber(pos);
-            string ret = _tmp[0];
+            auto _tmp = tokens[line][pos].value;
+            string ret = _tmp;
 
-            if (tolower(_tmp[0][1]) == 'x') {
-                ret = to_string(stoll(_tmp[0], 0, 16));
+            if (tolower(_tmp[1]) == 'x') {
+                ret = to_string(stoll(_tmp, 0, 16));
             }
 
-            return {ret, i.type, arg, _tmp.back()};
+            return {ret, i.type, arg, to_string(pos)};
 
         }
         else if (i.type == "STRING") {
@@ -609,34 +608,28 @@ public:
                     pos += 2;
                 }
                 else if (match("PLUS", pos) && match("ASSIGN", pos + 1)) {
-                    vector<string> operand = parseNumber(pos + 3);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) + stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 3].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) + stold(processNumber(operand, pos + 3)[0]), 15));
                 }
                 else if (match("MINUS", pos) && match("ASSIGN", pos + 1)) {
-                    vector<string> operand = parseNumber(pos + 3);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) - stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 3].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) - stold(processNumber(operand, pos + 3)[0]), 15));
                 }
                 else if (match("MULTIPLICATION", pos) && match("ASSIGN", pos + 1)) {
-                    vector<string> operand = parseNumber(pos + 3);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) * stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 3].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) * stold(processNumber(operand, pos + 3)[0]), 15));
                 }
                 else if (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) {
-                    vector<string> operand = parseNumber(pos + 4);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(pow(stold(ret), stold(processNumber(operand[0], stoi(operand.back()))[0])), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 4].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(pow(stold(ret), stold(processNumber(operand, pos + 4)[0])), 15));
                 }
                 else if (match("DIVISION", pos) && match("ASSIGN", pos + 1)) {
-                    vector<string> operand = parseNumber(pos + 3);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) / stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 3].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) / stold(processNumber(operand, pos + 3)[0]), 15));
                 }
                 else if (match("PERCENT", pos) && match("ASSIGN", pos + 1)) {
-                    vector<string> operand = parseNumber(pos + 3);
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(fmod(stold(ret),  stold(processNumber(operand[0], stoi(operand.back()))[0])), 15));
-                    pos = stoi(operand[1]);
+                    string operand = tokens[line][pos + 3].value;
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(fmod(stold(ret), stold(processNumber(operand, pos + 3)[0])), 15));
                 }
             }
 
@@ -668,9 +661,9 @@ public:
                 pos = stoi(__tmp.back());
             }
 
-            if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos) || brackets > 0)) {pos++;}
+            if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos - 1) || brackets > 0)) {pos++;}
 
-        } while (pos + 1 < tokens[line].size() && wh && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos) || brackets > 0));
+        } while (pos + 1 < tokens[line].size() && wh && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos - 1) || brackets > 0));
 
         return {ret, rettype, to_string(pos)};
     }
@@ -735,17 +728,21 @@ public:
                     }
                     else if (i.value == "if") {
                         if (pos + 1 < tokens[line].size()) {
+                            
                             auto _tmp = parseCode(pos + 1);
                             auto poss = parseBrackets(stoi(_tmp.back()));
+                            int _line = poss[2];
 
                             if (_tmp[0] == "true" && _tmp[1] == "BOOLEAN") {
                                 ret = executeCode(poss[0], poss[1], poss[2], isfunc);
                             }
-                            line = poss[2];
 
+                            line = _line;
                             if (ret.back() == "return" || ret.back() == "break") {
                                 break;
                             }
+
+                            
                         }
                     }
                     else if (i.value == "while") {
