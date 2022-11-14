@@ -448,7 +448,7 @@ public:
             string ret = _tmp[0];
 
             if (tolower(_tmp[0][1]) == 'x') {
-                ret = to_string(stoll(_tmp[0], 0, 15));
+                ret = to_string(stoll(_tmp[0], 0, 16));
             }
 
             return {ret, i.type, arg, _tmp.back()};
