@@ -91,7 +91,7 @@ public:
 
     vector<string> execsf(string fname, vector<string> args) {
         if (args.size() == 0) {
-            args = {"", "STRING"};
+            args = {"", "NULL"};
         }
         vector<string> ret = {"novalue", "NULL"};
         if (fname == "out") {
