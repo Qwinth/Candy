@@ -38,23 +38,27 @@ class Lexer {
                             undefined_elements[pos] = i;
                         }
                     } else {
-                        if (undefined != "") {
-                            undefined_elements[pos - undefined.length()] = undefined;
+                        if (i == "." && all_of(undefined.begin(), undefined.end(), ::isdigit)) {
+                            undefined += i;
                         }
-                        undefined_elements[pos] = i;
-                        undefined = "";
+                        else {
+                            if (undefined != "") {
+                                undefined_elements[pos - undefined.length()] = undefined;
+                            }
+
+                            undefined_elements[pos] = i;
+                            undefined = "";
+                        }
                     }
                 } else {
-                if (quotes_opened != "")
-                    undefined += i;
-                else if (i != space && i != "\t")
-                    undefined += i;
-                else {
-                    if (undefined != ""){
-                    undefined_elements[pos - undefined.length()] = undefined;
-                    undefined = "";
+                    if (quotes_opened != "")
+                        undefined += i;
+                    else if (i != space && i != "\t")
+                        undefined += i;
+                    else if (undefined != "") {
+                        undefined_elements[pos - undefined.length()] = undefined;
+                        undefined = "";
                     }
-                }
                 }
             }
             if (undefined != ""){
@@ -65,31 +69,38 @@ class Lexer {
 
         vector<Token> tokenize(map<int, string> undefined_elements){
             vector<Token> tokens = {};
-            string i = "";
+            string i;
+            string copyi;
             quotes_opened = "";
             for (auto tmp : undefined_elements){
                 i = tmp.second;
+                copyi = i;
+                if (copyi.find('.') != copyi.npos) { copyi.erase(copyi.find('.')); }
+                    
+                
                 if (spec_characters_name.find(i) != spec_characters_name.end() && (quotes_opened == "" || find(quotes.begin(), quotes.end(), i) != quotes.end())){
                     if (find(quotes.begin(), quotes.end(), i) != quotes.end()){
                         if (quotes_opened != "") {
                             quotes_opened = "";
+
+                            if (find(quotes.begin(), quotes.end(), undefined_elements[tmp.first - 1]) != quotes.end()) {
+                                tokens.push_back(Token("STRING", "", tmp.first));
+                            }
                         }  
                         else {
                             quotes_opened = quotes[find(quotes.begin(), quotes.end(), i) - quotes.begin()];
-                        }
-                            
+                        }  
                     }
                     else {
                         tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
                     }
 
-                } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x'))) {
+                } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x') || all_of(copyi.begin(), copyi.end(), ::isdigit))) {
                     tokens.push_back(Token("NUMBER", i, tmp.first));
-
                 } else if (quotes_opened != "") {
                     tokens.push_back(Token("STRING", i, tmp.first));
                 } else {
-                    tokens.push_back(Token("UNDEFINED_TOKEN", i, tmp.first));                    
+                    tokens.push_back(Token("UNDEFINED_TOKEN", i, tmp.first));   
                 }
             }
             return tokens;
