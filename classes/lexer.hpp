@@ -70,12 +70,12 @@ class Lexer {
         vector<Token> tokenize(map<int, string> undefined_elements){
             vector<Token> tokens = {};
             string i;
-            string copyi;
+            string dectest;
             quotes_opened = "";
             for (auto tmp : undefined_elements){
                 i = tmp.second;
-                copyi = i;
-                if (copyi.find('.') != copyi.npos) { copyi.erase(copyi.find('.')); }
+                dectest = i;
+                if (dectest.find('.') != dectest.npos) { dectest.erase(dectest.find('.')); }
                     
                 
                 if (spec_characters_name.find(i) != spec_characters_name.end() && (quotes_opened == "" || find(quotes.begin(), quotes.end(), i) != quotes.end())){
@@ -95,7 +95,7 @@ class Lexer {
                         tokens.push_back(Token(spec_characters_name[i], i, tmp.first));
                     }
 
-                } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x') || all_of(copyi.begin(), copyi.end(), ::isdigit))) {
+                } else if (quotes_opened == "" && (all_of(i.begin(), i.end(), ::isdigit) || (i[0] == '0' && tolower(i[1]) == 'x') || all_of(dectest.begin(), dectest.end(), ::isdigit))) {
                     tokens.push_back(Token("NUMBER", i, tmp.first));
                 } else if (quotes_opened != "") {
                     tokens.push_back(Token("STRING", i, tmp.first));
