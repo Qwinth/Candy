@@ -608,28 +608,34 @@ public:
                     pos += 2;
                 }
                 else if (match("PLUS", pos) && match("ASSIGN", pos + 1)) {
-                    string operand = tokens[line][pos + 3].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) + stold(processNumber(operand, pos + 3)[0]), 15));
+                    vector<string> operand = _parseCode(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) + stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
+                    pos = stoi(operand.back());
                 }
                 else if (match("MINUS", pos) && match("ASSIGN", pos + 1)) {
-                    string operand = tokens[line][pos + 3].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) - stold(processNumber(operand, pos + 3)[0]), 15));
+                    vector<string> operand = _parseCode(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) - stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
+                    pos = stoi(operand.back());
                 }
                 else if (match("MULTIPLICATION", pos) && match("ASSIGN", pos + 1)) {
-                    string operand = tokens[line][pos + 3].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) * stold(processNumber(operand, pos + 3)[0]), 15));
+                    vector<string> operand = _parseCode(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) * stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
+                    pos = stoi(operand.back());
                 }
                 else if (match("MULTIPLICATION", pos) && match("MULTIPLICATION", pos + 1) && match("ASSIGN", pos + 2)) {
-                    string operand = tokens[line][pos + 4].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(pow(stold(ret), stold(processNumber(operand, pos + 4)[0])), 15));
+                    vector<string> operand = _parseCode(pos + 4);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(pow(stold(ret), stold(processNumber(operand[0], stoi(operand.back()))[0])), 15));
+                    pos = stoi(operand.back());
                 }
                 else if (match("DIVISION", pos) && match("ASSIGN", pos + 1)) {
-                    string operand = tokens[line][pos + 3].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) / stold(processNumber(operand, pos + 3)[0]), 15));
+                    vector<string> operand = _parseCode(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(stold(ret) / stold(processNumber(operand[0], stoi(operand.back()))[0]), 15));
+                    pos = stoi(operand.back());
                 }
                 else if (match("PERCENT", pos) && match("ASSIGN", pos + 1)) {
-                    string operand = tokens[line][pos + 3].value;
-                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(fmod(stold(ret), stold(processNumber(operand, pos + 3)[0])), 15));
+                    vector<string> operand = _parseCode(pos + 3);
+                    variables[tokens[line][pos].value]->value = formatNumber(to_stringWp(fmod(stold(ret),  stold(processNumber(operand[0], stoi(operand.back()))[0])), 15));
+                    pos = stoi(operand.back());
                 }
             }
 
@@ -736,7 +742,7 @@ public:
                             if (_tmp[0] == "true" && _tmp[1] == "BOOLEAN") {
                                 ret = executeCode(poss[0], poss[1], poss[2], isfunc);
                             }
-
+                            
                             line = _line;
                             if (ret.back() == "return" || ret.back() == "break") {
                                 break;
