@@ -116,9 +116,9 @@ public:
 
     _data execsf(string fname, _argument args) {
         if (args.list.empty()) {
-            args.list[0] = {"", "NULL"};
+            args.list[0] = { "", "NULL"};
         }
-        _data ret = {"", "NULL" };
+        _data ret = { "", "NULL" };
         if (fname == "out") {
             string outdata = args.list[0].arg;
             for (int i = 1; i < args.list.size(); i += 1) {
@@ -145,7 +145,7 @@ public:
         else if (fname == "len") {
             if (args.list[0].type == "STRING") {
                 
-                ret = {to_string(count_if(args.list[0].arg.begin(), args.list[0].arg.end(), [](char c) { return (static_cast<unsigned char>(c) & 0xC0) != 0x80; } )), "NUMBER" };
+                ret = { to_string(count_if(args.list[0].arg.begin(), args.list[0].arg.end(), [](char c) { return (static_cast<unsigned char>(c) & 0xC0) != 0x80; } )), "NUMBER" };
             }
         }
         else if (fname == "type") {
@@ -352,58 +352,58 @@ public:
         if (value[1] == value[3]) {
             if (match("ASSIGN", pos) && match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) == stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) == stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else {
-                    return {boolean[value[0] == value[2]], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0] == value[2]], "BOOLEAN", "", pos_ex };
                 }
             }
             else if (match("EXCLAMATION_MARK", pos) && match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) != stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) != stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else {
-                    return {boolean[value[0] != value[2]], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0] != value[2]], "BOOLEAN", "", pos_ex };
                 }
             }
             else if (match("RIGHT_INEQUALITY_BRACKET", pos) && match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) >= stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) >= stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else if (value[1] == "STRING") {
-                    return {boolean[value[0].length() >= value[2].length()], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0].length() >= value[2].length()], "BOOLEAN", "", pos_ex };
                 }
             }
             else if (match("LEFT_INEQUALITY_BRACKET", pos) && match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) <= stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) <= stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else if (value[1] == "STRING") {
-                    return {boolean[value[0].length() <= value[2].length()], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0].length() <= value[2].length()], "BOOLEAN", "", pos_ex };
                 }
             }
             else if (match("RIGHT_INEQUALITY_BRACKET", pos) && !match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) > stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) > stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else if (value[1] == "STRING") {
-                    return {boolean[value[0].length() > value[2].length()], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0].length() > value[2].length()], "BOOLEAN", "", pos_ex };
                 }
             }
             else if (match("LEFT_INEQUALITY_BRACKET", pos) && !match("ASSIGN", pos + 1)) {
                 if (value[1] == "NUMBER") {
-                    return {boolean[stold(value[0]) < stold(value[2])], "BOOLEAN", "", pos_ex };
+                    return { boolean[stold(value[0]) < stold(value[2])], "BOOLEAN", "", pos_ex };
                 }
                 else if (value[1] == "STRING") {
-                    return {boolean[value[0].length() < value[2].length()], "BOOLEAN", "", pos_ex };
+                    return { boolean[value[0].length() < value[2].length()], "BOOLEAN", "", pos_ex };
                 }
             }
         } 
         else if (match("EXCLAMATION_MARK", pos) && match("ASSIGN", pos + 1)) {
-            return {boolean[1], "BOOLEAN", "", pos_ex};
+            return { boolean[1], "BOOLEAN", "", pos_ex};
         }
 
-        return {boolean[0], "BOOLEAN", "", pos_ex};
+        return { boolean[0], "BOOLEAN", "", pos_ex};
     }
 
     vector<int> parseBrackets(int pos) {
@@ -548,7 +548,7 @@ public:
             ret = rttmp;
         }
         else if (i.type == "UNDEFINED_TOKEN" && find(boolean.begin(), boolean.end(), i.value) != boolean.end()) {
-            return {i.value, "BOOLEAN", arg, pos};
+            return { i.value, "BOOLEAN", arg, pos};
         }
         else if (i.type == "MINUS" && (tokens[line][pos + 1].type == "UNDEFINED_TOKEN" || tokens[line][pos + 1].type == "NUMBER" || tokens[line][pos + 1].type == "LEFT_BRACKET" || tokens[line][pos + 1].type == "MINUS")) {
             _data _tmp;
@@ -678,7 +678,6 @@ public:
 
             if (pos + 2 < tokens[line].size() && arg != "pos+" && find(booloperators.begin(), booloperators.end(), tokens[line][pos + 1].value + tokens[line][pos + 2].value) != booloperators.end()) {
                 auto _tmp = parseCode(pos + 3, false);
-                //cout << pos << endl;
                 auto __tmp = processBoolean({ _ret, rettype, _tmp.arg, _tmp.type }, pos, _tmp.pos);
                 _ret = __tmp.arg;
                 rettype = __tmp.type;
@@ -693,7 +692,7 @@ public:
                 pos = __tmp.pos;
             }
 
-            if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos - 1) || brackets > 0)) {pos++;}
+            if (wh && pos + 1 < tokens[line].size() && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos - 1) || brackets > 0)) { pos++;}
 
         } while (pos + 1 < tokens[line].size() && wh && (!match("COMA", pos - 1) && !match("RIGHT_BRACKET", pos - 1) && !match("LEFT_FIGURE_BRACKET", pos - 1) || brackets > 0));
         
@@ -773,6 +772,7 @@ public:
                             }
 
                             line = _line;
+
                             if (ret.arg == "return" || (ret.arg == "break" && !isstfunc)) {
                                 break;
                             }
