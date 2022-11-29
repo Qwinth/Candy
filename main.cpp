@@ -47,11 +47,11 @@ int main(int argc, char * argv[]){
             for (int t = 0; t < codelines.size(); t++) {
                 tokenlist[t] = l.tokenize(l.disassemble(codelines[t]));
             }
-            
             code.str(std::string());
 
             Parser p(tokenlist, argv, argc);
             p.runCode();
+
             finalize(0);
         }
     }
