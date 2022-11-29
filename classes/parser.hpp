@@ -24,12 +24,12 @@ class Parser {
 
     map<int, vector<Token>> tokens = {};
     int line = 0;
-    map<string, vector<string>> objects = {{"FUNCTION", {}}, {"VARIABLE", {}}};
+    map<string, vector<string>> objects = { { "FUNCTION", {} }, { "VARIABLE", {} } };
     vector<string> keywords = { "if", "else", "for", "while", "continue", "break", "in", "import", "return", "func" };
     vector<string> booloperators = { "==", "!=", ">=", "<=", ">", "<" };
     vector<string> mathoperators = { "+", "-", "*", "/", "%" };
     vector<string> boolean = { "false", "true" };
-    map<char, string> control_characters = { {'0', "\0" }, {'a', "\a" }, {'b', "\b" }, {'t', "\t" }, {'n', "\n" }, {'v', "\v" }, {'f', "\f" }, {'r', "\r" }, {'\\', "\\" } };
+    map<char, string> control_characters = { { '0', "\0" }, { 'a', "\a" }, { 'b', "\b" }, { 't', "\t" }, { 'n', "\n" }, { 'v', "\v" }, { 'f', "\f" }, { 'r', "\r" }, { '\\', "\\" } };
     map<string, Variable*> variables = {};
     map<string, Function*> functions = {};
     map<string, Bytes*> bytesArrays = {};
