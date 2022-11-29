@@ -116,7 +116,7 @@ public:
 
     _data execsf(string fname, _argument args) {
         if (args.list.empty()) {
-            args.list[0] = { "", "NULL"};
+            args.list[0] = { "", "NULL" };
         }
         _data ret = { "", "NULL" };
         if (fname == "out") {
